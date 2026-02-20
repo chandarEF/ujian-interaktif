@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Ujian Interaktif - Bahasa Indonesia</title>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- SweetAlert2 untuk notifikasi -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.3);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            margin-top: 10px;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .quiz-container {
+            padding: 20px;
+        }
+
+        .question {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .question h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .option.selected {
+            border-color: #667eea;
+            background: #e8edff;
+        }
+
+        .option input[type="radio"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+            flex: 1;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .nav-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-buttons button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-prev {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .result-container {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .score-circle {
+            width: 200px;
+            height: 200px;
+            margin: 30px auto;
+            position: relative;
+        }
+
+        .score-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .score-details {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .score-details p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .dashboard {
+            padding: 20px;
+        }
+
+        .dashboard table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .dashboard th, .dashboard td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .dashboard th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .dashboard tr:hover {
+            background: #f9f9f9;
+        }
+
+        .warning-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .tab-warning {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(239,68,68,0.3);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+            display: none;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .timer {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .timer.warning {
+            color: #ef4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-selesai {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-belum {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- Login Section -->
+        <div id="loginSection" class="content">
+            <div class="header">
+                <h1>📚 Sistem Ujian Interaktif</h1>
+                <p>Bahasa Indonesia - Kelas X</p>
+            </div>
+            <div class="content">
+                <div class="form-group">
+                    <label>Nama Lengkap</label>
+                    <input type="text" id="studentName" placeholder="Masukkan nama lengkap" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label>Password (untuk guru)</label>
+                    <input type="password" id="password" placeholder="Masukkan password guru">
+                </div>
+                <button class="btn" onclick="login()">Masuk sebagai Siswa</button>
+                <button class="btn btn-secondary" onclick="loginGuru()">Masuk sebagai Guru</button>
+            </div>
+            <div class="footer">
+                <p>© 2024 Sistem Ujian Interaktif. All rights reserved.</p>
+            </div>
+        </div>
+
+        <!-- Quiz Section -->
+        <div id="quizSection" class="hidden">
+            <div class="header">
+                <h1 id="quizHeader">Selamat Mengerjakan, <span id="studentNameDisplay"></span>!</h1>
+                <p>Pilihlah jawaban yang paling tepat</p>
+            </div>
+            <div class="quiz-container">
+                <div class="timer" id="timer">Waktu tersisa: 30:00</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div id="questionsContainer"></div>
+                <div class="nav-buttons">
+                    <button class="btn-prev" onclick="prevQuestion()" id="prevBtn">◀ Sebelumnya</button>
+                    <button class="btn-next" onclick="nextQuestion()" id="nextBtn">Selanjutnya ▶</button>
+                </div>
+                <button class="btn" onclick="submitQuiz()" id="submitBtn" style="margin-top: 20px; display: none;">Kumpulkan Jawaban</button>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div id="resultSection" class="hidden">
+            <div class="header">
+                <h1>Hasil Ujian</h1>
+                <p>Terima kasih telah mengerjakan ujian</p>
+            </div>
+            <div class="result-container">
+                <div class="score-circle">
+                    <svg width="200" height="200">
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="#e0e0e0" stroke-width="20"/>
+                        <circle cx="100" cy="100" r="90" fill="none" stroke="#667eea" stroke-width="20" 
+                                stroke-dasharray="565.48" stroke-dashoffset="565.48" id="scoreCircle"/>
+                    </svg>
+                    <div class="score-text" id="scoreDisplay">0</div>
+                </div>
+                <div class="score-details" id="scoreDetails"></div>
+                <button class="btn" onclick="kembaliKeLogin()">Kembali ke Login</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Guru -->
+        <div id="dashboardSection" class="hidden">
+            <div class="header">
+                <h1>Dashboard Guru</h1>
+                <p>Daftar siswa yang telah mengerjakan ujian</p>
+            </div>
+            <div class="dashboard">
+                <button class="btn btn-danger" onclick="logout()" style="margin-bottom: 20px;">Logout</button>
+                <div id="dashboardContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warning Tab -->
+    <div class="tab-warning" id="tabWarning">
+        ⚠️ Peringatan: Anda tidak diperbolehkan pindah tab!
+    </div>
+
+    <script>
+        // Konfigurasi Firebase - GANTI DENGAN KONFIGURASI ANDA!
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsXtvZtESYdqfhw2mSkxzs94plagqO1fE",
+            authDomain: "ujian-interaktif.firebaseapp.com",
+            projectId: "ujian-interaktif",
+            storageBucket: "ujian-interaktif.firebasestorage.app",
+            messagingSenderId: "909424512356",
+            appId: "1:909424512356:web:8386620daf5f1e5e093e71"
+        };
+
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Data soal
+        const questions = [
+            {
+                question: "Untuk menjaga kesehatan, kita harus belajar dari ______ tentang cara makan yang benar.",
+                options: ["(1) remaja", "(2) ahli gizi", "(3) masyarakat", "(4) tenaga"],
+                correct: 1
+            },
+            {
+                question: "Saat belajar di kelas, kita perlu ______ perhatian agar bisa memahami pelajaran.",
+                options: ["(1) memusatkan", "(2) memperhatikan", "(3) menjamin", "(4) menyeimbangkan"],
+                correct: 0
+            },
+            {
+                question: "Ibu berkata bahwa masa ______ adalah waktu yang tepat untuk banyak makan makanan bergizi.",
+                options: ["(1) remaja", "(2) ahli gizi", "(3) masyarakat", "(4) tubuh"],
+                correct: 0
+            },
+            {
+                question: "Minum susu setiap hari bisa menambah ______, sehingga tulang menjadi kuat.",
+                options: ["(1) tenaga", "(2) protein", "(3) vitamin", "(4) kalsium"],
+                correct: 3
+            },
+            {
+                question: "______ dengan belajar sungguh-sungguh, kita bisa meraih nilai bagus.",
+                options: ["(1) Hanya", "(2) Selain itu", "(3) Perhatikan", "(4) Pastikan"],
+                correct: 0
+            },
+            {
+                question: "Mengerjakan PR selama tiga jam membuat ______ku habis.",
+                options: ["(1) tenaga", "(2) energi", "(3) badan", "(4) vitamin"],
+                correct: 0
+            },
+            {
+                question: "Buah dan sayur kaya akan ______ yang bagus untuk kesehatan kulit.",
+                options: ["(1) kalsium", "(2) protein", "(3) vitamin", "(4) susu"],
+                correct: 2
+            },
+            {
+                question: "Bu Guru, saya mau ______ tentang materi yang belum saya pahami.",
+                options: ["(1) memusatkan", "(2) bertanya", "(3) memperhatikan", "(4) memastikan"],
+                correct: 1
+            },
+            {
+                question: "Menurut Ibu, makanan yang ______ gizinya sangat penting untuk kesehatan.",
+                options: ["(1) bergizi", "(2) berenergi", "(3) bertubuh", "(4) bertenaga"],
+                correct: 0
+            },
+            {
+                question: "Agar tubuh bekerja dengan baik, kita harus minum air yang ______ setiap hari.",
+                options: ["(1) banyak", "(2) cukup", "(3) seimbang", "(4) hanya"],
+                correct: 1
+            },
+            {
+                question: "Setiap pagi saya makan telur karena mengandung banyak ______.",
+                options: ["(1) kalsium", "(2) susu", "(3) protein", "(4) vitamin"],
+                correct: 2
+            },
+            {
+                question: "Kita harus ______ keselamatan saat menyeberang jalan.",
+                options: ["(1) memperhatikan", "(2) memusatkan", "(3) bertanya", "(4) memastikan"],
+                correct: 0
+            },
+            {
+                question: "Tidur yang ______ membuat kita segar saat belajar keesokan harinya.",
+                options: ["(1) banyak", "(2) cukup", "(3) seimbang", "(4) hanya"],
+                correct: 1
+            },
+            {
+                question: "Perbanyak makan sayur, ______, juga perlu olahraga teratur.",
+                options: ["(1) hanya", "(2) selain itu", "(3) perhatikan", "(4) pastikan"],
+                correct: 1
+            },
+            {
+                question: "Banyak ______ yang suka berolahraga di taman pada pagi hari.",
+                options: ["(1) remaja", "(2) ahli gizi", "(3) orang", "(4) badan"],
+                correct: 2
+            }
+        ];
+
+        // Variabel global
+        let currentUser = null;
+        let currentQuestionIndex = 0;
+        let answers = new Array(questions.length).fill(null);
+        let timerInterval = null;
+        let timeLeft = 1800; // 30 menit dalam detik
+        let tabSwitchCount = 0;
+        let quizStarted = false;
+
+        // Deteksi pindah tab
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && quizStarted) {
+                tabSwitchCount++;
+                document.getElementById('tabWarning').style.display = 'block';
+                
+                if (tabSwitchCount >= 3) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Ujian Dibatalkan!',
+                        text: 'Anda telah pindah tab sebanyak 3 kali. Ujian akan diakhiri.',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        submitQuiz(true); // Force submit
+                    });
+                } else {
+                    setTimeout(() => {
+                        document.getElementById('tabWarning').style.display = 'none';
+                    }, 3000);
+                }
+            }
+        });
+
+        // Fungsi Login
+        async function login() {
+            const name = document.getElementById('studentName').value.trim();
+            
+            if (!name) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Oops...',
+                    text: 'Nama tidak boleh kosong!'
+                });
+                return;
+            }
+
+            // Cek apakah siswa sudah mengerjakan
+            const snapshot = await db.collection('results').where('name', '==', name).get();
+            
+            if (!snapshot.empty) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Sudah Mengerjakan',
+                    text: 'Anda sudah mengerjakan ujian sebelumnya. Ingin melihat hasil?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Lihat Hasil',
+                    cancelButtonText: 'Ulangi Ujian'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const data = snapshot.docs[0].data();
+                        showResult(data.score, data.answers, true);
+                    } else {
+                        startNewQuiz(name);
+                    }
+                });
+            } else {
+                startNewQuiz(name);
+            }
+        }
+
+        function startNewQuiz(name) {
+            currentUser = name;
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('quizSection').classList.remove('hidden');
+            document.getElementById('studentNameDisplay').textContent = name;
+            
+            // Reset state
+            currentQuestionIndex = 0;
+            answers = new Array(questions.length).fill(null);
+            timeLeft = 1800;
+            tabSwitchCount = 0;
+            quizStarted = true;
+            
+            // Tampilkan soal pertama
+            renderQuestion(0);
+            startTimer();
+        }
+
+        function loginGuru() {
+            const password = document.getElementById('password').value;
+            
+            // Password sederhana (ganti sesuai keinginan)
+            if (password === 'guru123') {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                loadDashboard();
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Akses Ditolak',
+                    text: 'Password guru salah!'
+                });
+            }
+        }
+
+        // Render soal
+        function renderQuestion(index) {
+            const container = document.getElementById('questionsContainer');
+            const q = questions[index];
+            
+            let html = `
+                <div class="question">
+                    <h3>${index + 1}. ${q.question}</h3>
+                    <div class="options">
+            `;
+            
+            q.options.forEach((option, optIndex) => {
+                const isSelected = answers[index] === optIndex;
+                html += `
+                    <div class="option ${isSelected ? 'selected' : ''}" onclick="selectOption(${index}, ${optIndex})">
+                        <input type="radio" name="q${index}" value="${optIndex}" ${isSelected ? 'checked' : ''}>
+                        <label>${option}</label>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Update progress
+            const progress = ((index + 1) / questions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            // Update tombol navigasi
+            document.getElementById('prevBtn').disabled = index === 0;
+            
+            if (index === questions.length - 1) {
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById('submitBtn').style.display = 'block';
+            } else {
+                document.getElementById('nextBtn').style.display = 'block';
+                document.getElementById('submitBtn').style.display = 'none';
+            }
+        }
+
+        function selectOption(qIndex, optIndex) {
+            answers[qIndex] = optIndex;
+            
+            // Update tampilan
+            const options = document.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            
+            // Update radio
+            const radio = event.currentTarget.querySelector('input[type="radio"]');
+            if (radio) radio.checked = true;
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion(currentQuestionIndex);
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                if (answers[currentQuestionIndex] === null) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Belum Dijawab',
+                        text: 'Silakan pilih jawaban terlebih dahulu!',
+                        timer: 1500
+                    });
+                    return;
+                }
+                currentQuestionIndex++;
+                renderQuestion(currentQuestionIndex);
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                
+                document.getElementById('timer').textContent = 
+                    `Waktu tersisa: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (timeLeft <= 300) { // 5 menit terakhir
+                    document.getElementById('timer').classList.add('warning');
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Waktu Habis!',
+                        text: 'Ujian akan segera dikumpulkan.',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        submitQuiz();
+                    });
+                }
+            }, 1000);
+        }
+
+        async function submitQuiz(isForce = false) {
+            // Cek apakah semua soal sudah dijawab
+            const unanswered = answers.reduce((acc, val, idx) => {
+                if (val === null) acc.push(idx + 1);
+                return acc;
+            }, []);
+            
+            if (unanswered.length > 0 && !isForce) {
+                const confirm = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Ada Soal Belum Dijawab',
+                    text: `Soal nomor ${unanswered.join(', ')} belum dijawab. Yakin ingin mengumpulkan?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Kumpulkan',
+                    cancelButtonText: 'Kembali Mengerjakan'
+                });
+                
+                if (!confirm.isConfirmed) {
+                    return;
+                }
+            }
+            
+            // Hitung skor
+            let correctCount = 0;
+            answers.forEach((answer, index) => {
+                if (answer === questions[index].correct) {
+                    correctCount++;
+                }
+            });
+            
+            const score = Math.round((correctCount / questions.length) * 100);
+            
+            // Simpan ke Firebase
+            try {
+                await db.collection('results').add({
+                    name: currentUser,
+                    score: score,
+                    correctCount: correctCount,
+                    totalQuestions: questions.length,
+                    answers: answers,
+                    tabSwitches: tabSwitchCount,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Hentikan timer
+                clearInterval(timerInterval);
+                quizStarted = false;
+                
+                // Tampilkan hasil
+                showResult(score, answers);
+                
+            } catch (error) {
+                console.error('Error saving to Firebase:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Menyimpan',
+                    text: 'Terjadi kesalahan saat menyimpan hasil ujian.'
+                });
+            }
+        }
+
+        function showResult(score, answers, isViewOnly = false) {
+            document.getElementById('quizSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.remove('hidden');
+            
+            // Animasi score circle
+            const circle = document.getElementById('scoreCircle');
+            const circumference = 2 * Math.PI * 90;
+            const offset = circumference - (score / 100) * circumference;
+            
+            setTimeout(() => {
+                circle.style.transition = 'stroke-dashoffset 1s ease';
+                circle.style.strokeDashoffset = offset;
+            }, 100);
+            
+            document.getElementById('scoreDisplay').textContent = score;
+            
+            // Detail jawaban
+            let detailsHtml = '<h3>Detail Jawaban:</h3>';
+            questions.forEach((q, index) => {
+                const userAnswer = answers[index];
+                const isCorrect = userAnswer === q.correct;
+                
+                detailsHtml += `
+                    <p style="color: ${isCorrect ? '#10b981' : '#ef4444'}; margin: 10px 0;">
+                        <strong>${index + 1}.</strong> 
+                        Jawaban Anda: ${userAnswer !== null ? q.options[userAnswer] : '(Tidak dijawab)'} 
+                        ${!isCorrect && userAnswer !== null ? `(Seharusnya: ${q.options[q.correct]})` : ''}
+                    </p>
+                `;
+            });
+            
+            document.getElementById('scoreDetails').innerHTML = detailsHtml;
+        }
+
+        async function loadDashboard() {
+            try {
+                const snapshot = await db.collection('results').orderBy('timestamp', 'desc').get();
+                
+                let html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Siswa</th>
+                                <th>Skor</th>
+                                <th>Benar/Total</th>
+                                <th>Pindah Tab</th>
+                                <th>Waktu</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                let no = 1;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString('id-ID') : '-';
+                    
+                    html += `
+                        <tr>
+                            <td>${no++}</td>
+                            <td>${data.name}</td>
+                            <td><strong>${data.score}</strong></td>
+                            <td>${data.correctCount}/${data.totalQuestions}</td>
+                            <td>${data.tabSwitches || 0}x</td>
+                            <td>${date}</td>
+                            <td><span class="status-badge status-selesai">Selesai</span></td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('dashboardContent').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('dashboardContent').innerHTML = '<p style="color: red;">Gagal memuat data</p>';
+            }
+        }
+
+        function kembaliKeLogin() {
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('studentName').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function logout() {
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('password').value = '';
+        }
+    </script>
+</body>
+</html>
